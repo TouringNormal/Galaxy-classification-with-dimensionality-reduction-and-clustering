@@ -1,13 +1,10 @@
 from pathlib import Path
 import warnings
-
 import numpy as np
 import pandas as pd
 from astropy.table import Table
 from astropy.units import UnitsWarning
 from sklearn.preprocessing import StandardScaler
-
-
 warnings.simplefilter("ignore", UnitsWarning)
 
 RAW_DIR = Path("../data/raw")
@@ -67,10 +64,10 @@ def clean_hubble_type(value):
 
 
 def main():
-    # ==========================================================
-    # 1. Read main science table
+
+    # Read main science table
     # Contains KiDS + VIKING fluxes and spectroscopic redshift.
-    # ==========================================================
+
     science = read_fits(SCIENCE_FILE)
 
     science_cols = [
@@ -86,6 +83,7 @@ def main():
     science = science[science_cols]
 
     # Science-quality filtering
+
     science = science[
         (science["NQ"] > 2) &
         (science["SC"] >= 7) &
@@ -93,21 +91,17 @@ def main():
         (science["Z"] < 0.6)
     ]
 
-    # Require valid fluxes in all KiDS + VIKING bands
     for col in FLUX_COLS:
         science = science[science[col] > 0]
 
-    # ==========================================================
-    # 2. Convert fluxes to magnitudes
-    # ==========================================================
+    # Convert fluxes to magnitudes
+
     for col in FLUX_COLS:
         band = col.replace("flux_", "").replace("t", "")
         science[f"mag_{band}"] = flux_to_mag(science[col])
 
-    # ==========================================================
-    # 3. Create colour features
-    # Colours are important for separating galaxy populations.
-    # ==========================================================
+    # Create colour features
+
     science["u_g"] = science["mag_u"] - science["mag_g"]
     science["g_r"] = science["mag_g"] - science["mag_r"]
     science["r_i"] = science["mag_r"] - science["mag_i"]
@@ -117,10 +111,8 @@ def main():
     science["J_H"] = science["mag_J"] - science["mag_H"]
     science["H_K"] = science["mag_H"] - science["mag_K"]
 
-    # ==========================================================
-    # 4. Read and merge stellar mass table
-    # StellarMassesGKVv24 joins by uberID.
-    # ==========================================================
+    # Read and merge stellar mass table
+
     masses = read_fits(MASS_FILE)
 
     mass_cols = ["uberID", "logmstar"]
@@ -132,10 +124,8 @@ def main():
 
     df = science.merge(masses, on="uberID", how="inner")
 
-    # ==========================================================
-    # 5. Read and merge morphology table
-    # Morphology is used for evaluation, not for unsupervised training.
-    # ==========================================================
+    # Read and merge morphology table
+
     morph = read_fits(MORPH_FILE)
 
     morph_cols = [c for c in ["uberID", "CATAID", "HUBBLE_TYPE"] if c in morph.columns]
@@ -149,9 +139,8 @@ def main():
         elif "CATAID" in morph.columns:
             df = df.merge(morph, on="CATAID", how="left", suffixes=("", "_morph"))
 
-    # ==========================================================
-    # 6. Rename core columns
-    # ==========================================================
+    # Rename core columns
+
     df = df.rename(columns={
         "RAcen": "RA",
         "Deccen": "Dec",
@@ -169,18 +158,16 @@ def main():
         bad_labels = ["X", "Artifact", "Star"]
         df["HUBBLE_TYPE"] = df["HUBBLE_TYPE"].replace(bad_labels, np.nan)
 
-    # ==========================================================
-    # 7. Drop rows missing required ML features
-    # ==========================================================
+    # Drop rows missing required ML features
+
     missing_features = [c for c in FEATURE_COLS if c not in df.columns]
     if missing_features:
         raise KeyError(f"Missing required ML feature columns: {missing_features}")
 
     df = df.dropna(subset=FEATURE_COLS)
 
-    # ==========================================================
-    # 8. Final scientific sanity filters
-    # ==========================================================
+    # Filters
+
     df = df[
         (df["spec_z"] > 0) &
         (df["spec_z"] < 0.6) &
@@ -191,9 +178,8 @@ def main():
     for col in MAG_COLS:
         df = df[(df[col] > 5) & (df[col] < 30)]
 
-    # ==========================================================
-    # 9. Scale ML features for PCA / UMAP / t-SNE / clustering
-    # ==========================================================
+    # Scale ML features for PCA / UMAP / t-SNE / clustering
+
     scaler = StandardScaler()
     scaled_values = scaler.fit_transform(df[FEATURE_COLS])
 
@@ -205,12 +191,11 @@ def main():
         index=df.index
     )
 
-    # ==========================================================
-    # 10. Build final output table
+    # Build output table
     # Raw features are kept for interpretation.
     # Scaled features are used for machine learning.
     # HUBBLE_TYPE is kept only for later evaluation.
-    # ==========================================================
+
     keep_cols = [
         "uberID", "CATAID", "RA", "Dec",
         "spec_z", "stellar_mass",
@@ -231,9 +216,8 @@ def main():
 
     final_df = final_df.loc[:, ~final_df.columns.duplicated()]
 
-    # ==========================================================
-    # 11. Save outputs
-    # ==========================================================
+      # Save outputs
+
     final_df.to_parquet(OUTPUT_PARQUET, index=False)
     final_df.to_csv(OUTPUT_CSV, index=False)
 
@@ -241,12 +225,6 @@ def main():
     print("\nSaved:")
     print(OUTPUT_PARQUET)
     print(OUTPUT_CSV)
-
-    print("\nFinal shape:")
-    print(final_df.shape)
-
-    print("\nML features to use in Part 2:")
-    print(scaled_cols)
 
     if "HUBBLE_TYPE" in final_df.columns:
         print("\nMorphology labels available for evaluation:")
