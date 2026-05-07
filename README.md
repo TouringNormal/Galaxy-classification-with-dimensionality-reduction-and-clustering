@@ -74,7 +74,7 @@ The script also creates a new folder called "results" and inside, there should b
 - tsne_embedding.png
 - tsne_by_morphology.png
 
-# Galaxy Classification – Part 3: Clustering
+# Part 3: Clustering
 
 ## Overview
 
