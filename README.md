@@ -64,7 +64,7 @@ Install Python packages in the VS Code terminal or Command Prompt:
 pip install pandas numpy scikit-learn umap-learn matplotlib pyarrow
 ```
 
-In the src folder, run file called embeddings.py
+In the src folder, run a file called embeddings.py
 This file, if successful, creates new files in data/processed called galaxies_embeddings.csv and galaxies_embeddings.parquet.
 The script also creates a new folder called "results" and inside, there should be graphs called:
 - pca_embedding.png
@@ -73,3 +73,62 @@ The script also creates a new folder called "results" and inside, there should b
 - umap_by_morphology.png
 - tsne_embedding.png
 - tsne_by_morphology.png
+
+# Galaxy Classification – Part 3: Clustering
+
+## Overview
+
+In this stage, we applied clustering algorithms to the low-dimensional galaxy embeddings produced in Part 2.
+
+## Goal
+
+- Apply clustering methods to the UMAP embedding
+- Compare clustering quality
+- Validate clusters using known morphology labels
+
+## Methods Used
+
+### 1. K-Means
+- Distance-based clustering algorithm
+- Requires predefined number of clusters
+- Used as a baseline clustering method
+
+### 2. Gaussian Mixture Model (GMM)
+- Probabilistic clustering algorithm
+- Allows overlapping cluster distributions
+- Better suited for continuous galaxy populations
+
+## Requirements
+
+Install Python packages in the VS Code terminal or Command Prompt:
+
+```bash
+pip install pandas numpy scikit-learn matplotlib seaborn pyarrow
+```
+
+In the src folder, run a file called clustering.py
+This file, if successful, creates new files in data/results called: 
+- clustering_metrics.csv
+- galaxier_clustered.csv
+- morphology_subset_clustered.csv
+
+The script also creates new graphs into the results/plots folder and inside, there should be graphs called:
+- morphology_labels_subset.png
+- gmm_clusters_full.png
+- gmm_clusters_subset.png
+- kmeans_clusters_full.png
+- kmeans_clusters_subset.png
+
+
+# Final results:
+
+- Final cleaned dataset contained **190,617 galaxies**
+- Morphology-labelled evaluation subset contained **6,738 galaxies**
+- UMAP produced the clearest low-dimensional representation of galaxy structure.
+- K-Means and GMM clustering were applied on the UMAP embedding using **7 clusters**
+- Full-population clustering achieved:
+  - **K-Means:** silhouette = 0.376, ARI = 0.196, NMI = 0.251
+  - **GMM:** silhouette = 0.344, ARI = 0.275, NMI = 0.288
+- Morphology-subset clustering achieved:
+  - **K-Means:** silhouette = 0.431, ARI = 0.146, NMI = 0.232
+  - **GMM:** silhouette = 0.269, ARI = 0.140, NMI = 0.254
